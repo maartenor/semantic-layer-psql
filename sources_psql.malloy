@@ -1,0 +1,62 @@
+-- Direct query to source table to get first 5 machines added after  machine_nr 'M000040'
+
+source: postgres_src is postgres.sql('SELECT * FROM machine_demo.machine_demo.machines LIMIT 99') extend {
+    primary_key: machine_nr
+    measure: machine_cnt is count()
+}
+
+
+source: customers is postgres.sql('SELECT * FROM machine_demo.machine_demo.customers') extend {
+    primary_key: customer_id
+    measure: customer_cnt is count()
+}
+
+source: locations is postgres.sql('SELECT * FROM machine_demo.machine_demo.locations') extend {
+    primary_key: location_id
+    measure: location_cnt is count()
+    join_one: customers on customers.customer_id = customer_id
+}
+
+source: machines is postgres.sql('SELECT * FROM machine_demo.machine_demo.machines') extend {
+    primary_key: machine_nr
+    measure: machine_cnt is count()
+}
+
+source: install_base is postgres.sql('SELECT * FROM machine_demo.machine_demo.install_base') extend {
+    measure: installs_cnt is count()
+    join_one: machines on machines.machine_nr = machine_nr
+    join_one: locations on locations.location_id = location_id
+    view: top_5_locations is {
+        group_by: location_id
+        aggregate: install_cnt is count()
+        limit: 5
+    }
+    view: top_5_customers is {
+        group_by: locations.customers.customer_name
+        aggregate: machines_installed_cnt is count()
+                   site_cnt is count(locations.site_name)
+        limit: 5
+    }
+}  
+
+source: states is postgres.sql('SELECT * FROM machine_demo.machine_demo.states') extend {
+    timezone: 'America/Mexico_City'
+    join_one: machines on machines.machine_nr = machine_nr
+    measure:
+        machine_cnt is count(machine_nr)
+        total_state_duration is sum(state_duration)
+        row_cnt is count()
+        
+    dimension:
+        state_duration is (hour(end_time) - hour(start_time))*60 
+                        + (minute(end_time) - minute(start_time))
+}
+
+source: event_logs is postgres.sql('SELECT * FROM machine_demo.machine_demo.event_logs') extend {
+    primary_key: event_id
+    join_one: machines on machines.machine_nr = machine_nr
+    measure: 
+        event_cnt is count()
+        machines_with_events_cnt is count(machine_nr) 
+}
+

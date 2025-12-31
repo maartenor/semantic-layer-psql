@@ -1,0 +1,45 @@
+import "sources_psql.malloy" -- || import "sources_duckdb.malloy"
+
+run: customers -> {
+  select: customer_name, country, customer_id
+  where: customer_id < "C005"
+  limit: 100
+}
+
+run: states -> {
+    group_by: machine_nr
+    aggregate: row_cnt
+}
+
+run: event_logs -> {
+  group_by: machine_nr
+  aggregate: event_cnt 
+            last_event is max(event_time)
+  calculate: events_rank is rank()
+}
+
+-- Measure that shows amount of machines per customer
+run: install_base -> {
+  group_by: locations.customers.customer_name
+  aggregate: machines_per_customer is count(machine_nr)
+}
+
+-- Measure that shows amount of machines per customer per location
+run: install_base -> {
+  group_by:
+    locations.customers.customer_name
+  nest: by_site is {  
+    group_by: locations.site_name
+    order_by: site_name asc
+    aggregate: machines_per_location is count(machine_nr)
+  }
+}
+
+-- Measure that shows amount of machines per customer where machines have events logged
+
+
+-- Show top 5 locations by amount of machines registered per location in install_base
+run: install_base -> top_5_locations + { }
+
+-- Show top 5 customers by amount of machines registered per location in install_base
+run: install_base -> top_5_customers + { }
