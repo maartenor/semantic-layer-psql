@@ -2,8 +2,6 @@ import "sources.malloy"
 
 run: customers -> {
   select: customer_name, country, customer_id
-  where: customer_id < "C005"
-  limit: 100
 }
 
 run: states -> {
@@ -39,5 +37,4 @@ run: install_base -> {
 run: install_base -> top_5_locations + { }
 
 -- Show top 5 customers by amount of machines registered per location in install_base
-
 run: install_base -> top_5_customers + { }
